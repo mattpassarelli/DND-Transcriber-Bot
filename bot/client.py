@@ -72,7 +72,7 @@ class STTBot:
         async def on_ready() -> None:
             logger.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
             logger.info(
-                "Commands: %sjoin  %sleave  %ssummary  %sclearnotes  %sstatus",
+                "Commands: %sjoin  %sleave  %ssummary  %sclearnotes  %sstatus %sdumptranscript",
                 *([discord_cfg.command_prefix] * 5),
             )
             if self._result_task is None or self._result_task.done():
@@ -118,14 +118,6 @@ class STTBot:
                     cls=discord.ext.voice_recv.VoiceRecvClient,
                 )
                 vc.listen(STTAudioSink(self._audio_q))
-                async def _debug():
-                    await asyncio.sleep(6)
-                    conn = vc._connection
-                    logger.info("SSRC map: %s", getattr(conn, 'ssrc_map', 'NOT FOUND'))
-                    logger.info("Voice client type: %s", type(vc))
-                    logger.info("Connection type: %s", type(conn))
-                    logger.info("Connection attrs: %s", [a for a in dir(conn) if 'ssrc' in a.lower() or 'user' in a.lower()])
-                asyncio.ensure_future(_debug())
 
             self._session_start = datetime.now()
             await ctx.send(
@@ -134,7 +126,6 @@ class STTBot:
                 f"I'm transcribing everything. Use `{discord_cfg.command_prefix}summary` for notes."
             )
             logger.info("Joined voice channel: %s", channel)
-
 
         @bot.command(name="leave")
         async def cmd_leave(ctx: commands.Context) -> None:
@@ -186,6 +177,19 @@ class STTBot:
                     f"📊 Not currently recording. {lines} transcript lines in memory."
                 )
 
+        @bot.command(name="dumptranscript")
+        async def cmd_dumptranscript(ctx: commands.Context) -> None:
+            """Save the raw in-memory transcript to a file, no summarization."""
+            if not self._transcript:
+                await ctx.send("⚠️ No transcript in memory — nothing to dump.")
+                return
+
+            filename = _dump_transcript(self._transcript)
+            await ctx.send(
+                f"📄 Raw transcript saved — {len(self._transcript)} lines.\n"
+                f"_(Saved to `{filename}`)_"
+            )
+
     def _send_command(self, command: str, payload: object) -> None:
         try:
             self._cmd_q.put_nowait((command, payload))
@@ -228,7 +232,21 @@ class STTBot:
                 await asyncio.sleep(1)
 
 
-# ── Summary helper ──────────────────────────────────────────────────────────────
+# ── Transcript / Summary helpers ──────────────────────────────────────────────
+
+def _dump_transcript(transcript_lines: list[str]) -> str:
+    """Write the raw transcript to a timestamped .txt file. Returns the filename."""
+    os.makedirs("sessions", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"sessions/transcript_{timestamp}.txt"
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"# Raw Transcript — {datetime.now().strftime('%B %d, %Y at %H:%M')}\n\n")
+        f.write("\n".join(transcript_lines))
+
+    logger.info("Raw transcript dumped to %s (%d lines).", filename, len(transcript_lines))
+    return filename
+
 
 async def _post_summary(bot: STTBot, channel: discord.TextChannel, final: bool) -> None:
     transcript_text = "\n".join(bot._transcript)
@@ -236,6 +254,10 @@ async def _post_summary(bot: STTBot, channel: discord.TextChannel, final: bool) 
     if not transcript_text.strip():
         await channel.send("⚠️ No transcript yet — nothing to summarize.")
         return
+
+    # Always dump the raw transcript first — guarantees you have something
+    # to work with even if summarization fails or comes back garbled.
+    transcript_filename = _dump_transcript(bot._transcript)
 
     summary = await asyncio.to_thread(summarize, transcript_text)
 
@@ -256,5 +278,7 @@ async def _post_summary(bot: STTBot, channel: discord.TextChannel, final: bool) 
     for chunk in chunks:
         await channel.send(chunk)
 
-    await channel.send(f"_(Saved to `{filename}`)_")
-
+    await channel.send(
+        f"_(Notes saved to `{filename}`)_\n"
+        f"_(Raw transcript saved to `{transcript_filename}`)_"
+    )
