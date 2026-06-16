@@ -130,6 +130,13 @@ class STTBot:
         @bot.command(name="leave")
         async def cmd_leave(ctx: commands.Context) -> None:
             """Flush audio, post final notes, and leave."""
+            # Dump the raw transcript immediately, regardless of voice
+            # connection state — guarantees we never lose it even if
+            # something is wrong with the voice client.
+            if self._transcript:
+                safety_filename = _dump_transcript(self._transcript)
+                logger.info("Safety transcript dump on !leave: %s", safety_filename)
+
             if not ctx.voice_client:
                 await ctx.send("❌ I am not in a voice channel.")
                 return
