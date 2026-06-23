@@ -24,7 +24,8 @@ logger = get_logger(__name__)
 # The more context you bake in, the better the notes will be.
 CAMPAIGN_CONTEXT = ""  # e.g. "The party: Aldric (paladin), Zessa (warlock)..."
 
-SINGLE_PASS_PROMPT = """You are a scribe for a Dungeons & Dragons campaign. \
+SINGLE_PASS_PROMPT = """/no_think
+You are a scribe for a Dungeons & Dragons campaign. \
 Summarize the following session transcript into organized notes.
 
 Include these sections (omit any with no content):
@@ -47,7 +48,8 @@ Transcript:
 
 Session Notes:"""
 
-CHUNK_PROMPT = """You are a scribe for a Dungeons & Dragons campaign. \
+CHUNK_PROMPT = """/no_think
+You are a scribe for a Dungeons & Dragons campaign. \
 The following is ONE PART of a longer session transcript (not the whole session).
 Extract and list anything notable from THIS PART ONLY. Be concise — short bullet points.
 
@@ -68,7 +70,8 @@ Transcript part:
 
 Notes for this part:"""
 
-FINAL_PROMPT = """You are a scribe for a Dungeons & Dragons campaign. \
+FINAL_PROMPT = """/no_think
+You are a scribe for a Dungeons & Dragons campaign. \
 Below are notes extracted from successive parts of a single session, in order.
 Combine them into ONE clean, de-duplicated set of session notes.
 

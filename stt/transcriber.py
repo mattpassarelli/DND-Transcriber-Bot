@@ -17,6 +17,20 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Common Whisper hallucinations on silence/noise — discard these
+_HALLUCINATIONS = {
+    "thank you.",
+    "thanks for watching.",
+    "please subscribe.",
+    "thanks for watching",
+    "thank you for watching.",
+    "you",
+    ".",
+    "...",
+    "bye.",
+    "bye-bye.",
+    "subtitles by",
+}
 
 class Transcriber:
     """Loads Faster-Whisper and transcribes int16 PCM audio to text."""
@@ -52,11 +66,6 @@ class Transcriber:
             )
 
     def transcribe(self, user_id: int, audio_bytes: bytes) -> dict[str, Any] | None:
-        """
-        Transcribe PCM int16 audio to text.
-
-        Returns {"user_id": ..., "text": ..., "latency": ...} or None.
-        """
         if len(audio_bytes) < stt_cfg.min_audio_bytes:
             return None
 
@@ -73,6 +82,11 @@ class Transcriber:
             elapsed = time.perf_counter() - t0
 
             if not text:
+                return None
+
+            # Drop known Whisper hallucinations
+            if text.lower() in _HALLUCINATIONS:
+                logger.debug("Dropped hallucination for user %s: %r", user_id, text)
                 return None
 
             logger.debug("User %s transcribed in %.3fs: %s", user_id, elapsed, text)

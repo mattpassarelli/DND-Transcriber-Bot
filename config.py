@@ -84,7 +84,7 @@ class STTConfig:
     language: str = field(default_factory=lambda: _env_str("STT_LANGUAGE", "en"))
     beam_size: int = field(default_factory=lambda: _env_int("STT_BEAM_SIZE", 1))
     min_audio_bytes: int = field(
-        default_factory=lambda: _env_int("STT_MIN_AUDIO_BYTES", 3200)
+        default_factory=lambda: _env_int("STT_MIN_AUDIO_BYTES", 8000)
     )
     fallback_model_id: str = field(
         default_factory=lambda: _env_str("STT_FALLBACK_MODEL_ID", "base")
