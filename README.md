@@ -1,5 +1,3 @@
-[[_TOC_]]
-
 # D&D Scribe Bot
 
 A locally-hosted Discord bot that joins your voice channel, transcribes everyone in real time using Whisper, and generates structured D&D session notes using a local LLM via Ollama. No audio or transcript data ever leaves your machine.
