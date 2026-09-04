@@ -28,6 +28,10 @@ The bot runs two processes:
 
 Audio flows from Discord through a per-user resampler, into a multiprocessing queue, through voice activity detection, and into Whisper. Transcribed lines are written to both an in-memory list and a rolling file on disk as they arrive. At the end of a session, Ollama summarizes the full transcript into structured D&D notes.
 
+### Warning/Notice
+
+It should go without saying, but despite Discord having DAVE, using this bot sort of negates it. You are transcribing basically everything said in the channel the bot is currently in. You are responsible for safely storing, using, and discarding these transcriptions. Make sure you have the permission of everyone in the channel and that they know they are being recorded. Everyone has the right to privacy and you should respect that when attempting to use this bot.
+
 ---
 
 ## Requirements
